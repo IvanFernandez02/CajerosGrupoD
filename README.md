@@ -1,5 +1,11 @@
 # 🛒 Simulación de Cajas de Supermercado - Grupo D
 
+# Integrantes
+  - Ivan Fernandez
+  - Eberson Guayllas
+  - Juan Alverca
+  - Ariana Sarango
+
 ```
 SimulacionGrupoD/
 │
@@ -64,7 +70,6 @@ SimulacionGrupoD/
 ## 🚀 Ejecución
 
 ```bash
-# Versión modular (recomendada)
 python main.py
 
 ## 📦 Dependencias

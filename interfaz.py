@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox, scrolledtext
 import time
+import random
 
 from config import *
 from caja import Caja
@@ -139,13 +140,17 @@ class SimulacionApp:
         canvas.create_window((0, 0), window=frame_interno, anchor=tk.NW)
         
         self.entries_filas = []
-        
+
+        # Generar valores aleatorios por defecto (editables) para cada fila.
+        # Asumimos rangos razonables: cajas normales 1-20 personas, express 1-20 personas.
         for i in range(self.config['num_cajas_normales']):
-            self.crear_campo_fila(frame_interno, f"🏪 Caja {i+1} (Normal)", i)
-        
+            default_val = random.randint(1, 20)
+            self.crear_campo_fila(frame_interno, f"🏪 Caja {i+1} (Normal)", i, default_val)
+
         for i in range(self.config['num_cajas_express']):
             idx = self.config['num_cajas_normales'] + i
-            self.crear_campo_fila(frame_interno, f"⚡ Express {i+1}", idx)
+            default_val = random.randint(1, 20)
+            self.crear_campo_fila(frame_interno, f"⚡ Express {i+1}", idx, default_val)
         
         frame_interno.update_idletasks()
         canvas.config(scrollregion=canvas.bbox("all"))
@@ -164,7 +169,7 @@ class SimulacionApp:
         )
         btn_iniciar.pack(pady=15)
     
-    def crear_campo_fila(self, parent, nombre, idx):
+    def crear_campo_fila(self, parent, nombre, idx, default_val=None):
         """Crea un campo para configurar personas en fila."""
         frame = tk.Frame(parent, bg=COLOR_PANEL)
         frame.pack(fill=tk.X, pady=5)
@@ -180,7 +185,8 @@ class SimulacionApp:
         label.pack(side=tk.LEFT, padx=5)
         
         entry = tk.Entry(frame, font=("Arial", 11), width=8)
-        entry.insert(0, "0")
+        # Si se proporciona un valor por defecto (aleatorio), usarlo; si no, usar 0.
+        entry.insert(0, str(default_val) if default_val is not None else "0")
         entry.pack(side=tk.RIGHT, padx=5)
         
         self.entries_filas.append(entry)
@@ -191,35 +197,62 @@ class SimulacionApp:
         """Crea las cajas y prepara la simulación."""
         try:
             num_total_cajas = self.config['num_cajas_normales'] + self.config['num_cajas_express']
-            espacio_horizontal = ANCHO_PANTALLA / (num_total_cajas + 1)
+
+            # Parametros de layout de la cuadrícula
+            box_w = 140
+            box_h = 80
+            pad_x = 60   # espacio horizontal entre cajas (aumentado)
+            pad_y = 280  # espacio vertical entre filas de cajas (aumentado para las filas de clientes)
+            top_margin = 80
             
+            # Calcular número de columnas que caben en pantalla
+            max_columns_by_width = max(1, int((ANCHO_PANTALLA - 80) // (box_w + pad_x)))
+            columns = min(num_total_cajas, max_columns_by_width)
+            
+            # Centrar horizontalmente la cuadrícula
+            total_grid_width = columns * box_w + (columns - 1) * pad_x
+            left_margin = (ANCHO_PANTALLA - total_grid_width) // 2
+
             idx_entry = 0
-            
+            layout_index = 0
+
             # Cajas normales
             for i in range(self.config['num_cajas_normales']):
                 nombre = f"Caja {i+1}"
-                pos_x = espacio_horizontal * (i + 1) - 70
-                caja = Caja(nombre, pos_x, 80, False, COLOR_CAJA, self.config)
-                
+                col = layout_index % columns
+                row = layout_index // columns
+                pos_x = left_margin + col * (box_w + pad_x)
+                pos_y = top_margin + row * (box_h + pad_y)
+
+                caja = Caja(nombre, pos_x, pos_y, False, COLOR_CAJA, self.config)
+
                 cantidad = int(self.entries_filas[idx_entry].get())
                 caja.agregar_clientes_iniciales(cantidad)
                 caja.calcular_tiempo_total_estatico()
                 caja.personas_iniciales = len(caja.fila_clientes)
                 self.cajas.append(caja)
+
                 idx_entry += 1
-            
+                layout_index += 1
+
             # Cajas express
             for i in range(self.config['num_cajas_express']):
                 nombre = f"Express {i+1}"
-                pos_x = espacio_horizontal * (self.config['num_cajas_normales'] + i + 1) - 70
-                caja = Caja(nombre, pos_x, 80, True, COLOR_CAJA_EXPRESS, self.config)
-                
+                col = layout_index % columns
+                row = layout_index // columns
+                pos_x = left_margin + col * (box_w + pad_x)
+                pos_y = top_margin + row * (box_h + pad_y)
+
+                caja = Caja(nombre, pos_x, pos_y, True, COLOR_CAJA_EXPRESS, self.config)
+
                 cantidad = int(self.entries_filas[idx_entry].get())
                 caja.agregar_clientes_iniciales(cantidad)
                 caja.calcular_tiempo_total_estatico()
                 caja.personas_iniciales = len(caja.fila_clientes)
                 self.cajas.append(caja)
+
                 idx_entry += 1
+                layout_index += 1
             
             self.mostrar_analisis()
             
